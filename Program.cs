@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using Microsoft.Extensions.Configuration;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
@@ -121,7 +122,29 @@ namespace LagoaSportRpa
             var options = new ChromeOptions();
             options.AddArgument("--start-maximized");
 
-            _driver = new ChromeDriver(options);
+            var headless = string.Equals(Environment.GetEnvironmentVariable("HEADLESS"), "true", StringComparison.OrdinalIgnoreCase);
+            if (headless)
+            {
+                options.AddArgument("--headless=new");
+                options.AddArgument("--no-sandbox");
+                options.AddArgument("--disable-dev-shm-usage");
+                options.AddArgument("--disable-gpu");
+                options.AddArgument("--window-size=1920,1080");
+            }
+
+            var chromeBin = Environment.GetEnvironmentVariable("CHROME_BIN");
+            if (!string.IsNullOrWhiteSpace(chromeBin))
+            {
+                options.BinaryLocation = chromeBin;
+            }
+
+            var driverPath = Environment.GetEnvironmentVariable("CHROMEDRIVER_PATH");
+            ChromeDriverService service = string.IsNullOrWhiteSpace(driverPath)
+                ? ChromeDriverService.CreateDefaultService()
+                : ChromeDriverService.CreateDefaultService(driverPath);
+            service.HideCommandPromptWindow = true;
+
+            _driver = new ChromeDriver(service, options);
         }
 
         public static void Quit()
@@ -428,9 +451,11 @@ namespace LagoaSportRpa
     {
         public static void Main()
         {
+            LoadDotEnv(Path.Combine(AppContext.BaseDirectory, ".env"));
+            LoadDotEnv(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
+
             var config = new ConfigurationBuilder()
-                .SetBasePath(AppContext.BaseDirectory)
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+                .AddEnvironmentVariables()
                 .Build();
 
             var settings = config.Get<AppSettings>();
@@ -472,48 +497,40 @@ namespace LagoaSportRpa
                 .AddStep(new StopBrowserStep())
                 .Build();
 
-            Console.WriteLine("Agendador ativo. Executara toda segunda-feira as 05:00 (horario local).");
-
-            while (true)
+            foreach (var context in contexts)
             {
-                var now = DateTime.Now;
-                var nextRun = GetNextMondayAtFive(now);
-                var wait = nextRun - now;
-
-                if (wait > TimeSpan.Zero)
+                try
                 {
-                    Console.WriteLine($"Proxima execucao em: {nextRun:yyyy-MM-dd HH:mm:ss}");
-                    Thread.Sleep(wait);
+                    pipeline.Execute(context);
+                    Console.WriteLine($"Agendamento executado com sucesso para {context.Email}.");
                 }
-
-                foreach (var context in contexts)
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        pipeline.Execute(context);
-                        Console.WriteLine($"Agendamento executado com sucesso para {context.Email}.");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Erro para {context.Email}: {ex.Message}");
-                        SeleniumHelper.Quit();
-                    }
+                    Console.WriteLine($"Erro para {context.Email}: {ex.Message}");
+                    SeleniumHelper.Quit();
                 }
-
-                Thread.Sleep(TimeSpan.FromSeconds(1));
             }
         }
 
-        private static DateTime GetNextMondayAtFive(DateTime now)
+        private static void LoadDotEnv(string path)
         {
-            var next = new DateTime(now.Year, now.Month, now.Day, 5, 0, 0);
-            int daysUntilMonday = ((int)DayOfWeek.Monday - (int)now.DayOfWeek + 7) % 7;
-            if (daysUntilMonday == 0 && now.TimeOfDay >= new TimeSpan(5, 0, 0))
+            if (!File.Exists(path)) return;
+
+            foreach (var line in File.ReadAllLines(path))
             {
-                daysUntilMonday = 7;
+                var trimmed = line.Trim();
+                if (string.IsNullOrWhiteSpace(trimmed)) continue;
+                if (trimmed.StartsWith("#")) continue;
+
+                var idx = trimmed.IndexOf('=');
+                if (idx <= 0) continue;
+
+                var key = trimmed.Substring(0, idx).Trim();
+                var value = trimmed.Substring(idx + 1).Trim();
+                value = value.Trim('"');
+
+                Environment.SetEnvironmentVariable(key, value);
             }
-            next = next.AddDays(daysUntilMonday);
-            return next;
         }
     }
 }
