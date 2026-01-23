@@ -1,0 +1,7 @@
+services:
+  - type: cron
+    name: lagoa-sport-cron
+    runtime: docker
+    schedule: "0 8 * * MON"
+    dockerContext: LagoaSportRpa
+    dockerfilePath: LagoaSportRpa/Dockerfile
