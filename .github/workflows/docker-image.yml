@@ -27,3 +27,6 @@ jobs:
       - name: Rodar RPA
         # --rm: remove o container depois que terminar (limpeza)
         run: docker run --rm rpa-image
+
+      - name: Listar arquivos (Debug)
+        run: ls -R
