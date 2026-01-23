@@ -18,10 +18,9 @@ jobs:
       - name: Checkout do repositório
         uses: actions/checkout@v4
 
-      # 2. Constrói a imagem Docker (igual o Render faria)
       - name: Build da Imagem Docker
-        # O comando entra na pasta LagoaSportRpa e usa o Dockerfile de lá
-        run: docker build -t rpa-image
+        # Adicionei o " ." no final da linha abaixo
+        run: docker build -t rpa-image .
 
       # 3. Executa o Container
       - name: Rodar RPA
