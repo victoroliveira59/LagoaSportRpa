@@ -1,0 +1,29 @@
+name: Executar Lagoa Sport RPA
+
+on:
+  schedule:
+    # 08:00 UTC = 05:00 Horário de Brasília
+    # Executa toda Segunda-feira (1 = Monday)
+    - cron: '0 8 * * 1'
+  
+  # Permite rodar manualmente para testes (botão "Run workflow")
+  workflow_dispatch:
+
+jobs:
+  run-rpa-container:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Baixa o seu código
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      # 2. Constrói a imagem Docker (igual o Render faria)
+      - name: Build da Imagem Docker
+        # O comando entra na pasta LagoaSportRpa e usa o Dockerfile de lá
+        run: docker build -t rpa-image ./LagoaSportRpa
+
+      # 3. Executa o Container
+      - name: Rodar RPA
+        # --rm: remove o container depois que terminar (limpeza)
+        run: docker run --rm rpa-image
