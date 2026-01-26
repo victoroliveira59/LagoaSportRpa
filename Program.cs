@@ -114,6 +114,10 @@ namespace LagoaSportRpa
     public static class SeleniumHelper
     {
         private static IWebDriver? _driver;
+        private static readonly int DefaultTimeoutSeconds =
+            int.TryParse(Environment.GetEnvironmentVariable("WAIT_SECONDS"), out var seconds) && seconds > 0
+                ? seconds
+                : 15;
 
         public static void Start()
         {
@@ -167,14 +171,14 @@ namespace LagoaSportRpa
 
         public static void FillTextBox(By by, string text)
         {
-            var el = WaitForElement(by, 10);
+            var el = WaitForElement(by, DefaultTimeoutSeconds);
             el.Clear();
             el.SendKeys(text);
         }
 
         public static void Click(By by)
         {
-            var el = WaitForElement(by, 10);
+            var el = WaitForElement(by, DefaultTimeoutSeconds);
             el.Click();
         }
 
@@ -185,11 +189,11 @@ namespace LagoaSportRpa
             wait.Until(condition);
         }
 
-        public static bool ElementExists(By by, int timeoutSeconds = 3)
+        public static bool ElementExists(By by, int timeoutSeconds = 0)
         {
             try
             {
-                WaitForElement(by, timeoutSeconds);
+                WaitForElement(by, timeoutSeconds > 0 ? timeoutSeconds : DefaultTimeoutSeconds);
                 return true;
             }
             catch
@@ -201,7 +205,7 @@ namespace LagoaSportRpa
         public static IWebElement WaitForElement(By by, int timeoutSeconds = 10)
         {
             EnsureDriver();
-            var wait = new WebDriverWait(_driver!, TimeSpan.FromSeconds(timeoutSeconds));
+            var wait = new WebDriverWait(_driver!, TimeSpan.FromSeconds(timeoutSeconds > 0 ? timeoutSeconds : DefaultTimeoutSeconds));
             return wait.Until(drv => drv.FindElement(by));
         }
 
@@ -276,7 +280,7 @@ namespace LagoaSportRpa
             SeleniumHelper.FillTextBox(By.Id("password"), ctx.Senha);
 
             SeleniumHelper.Click(By.XPath("//button[@type='submit']"));
-            SeleniumHelper.WaitUntil(drv => !drv.Url.Contains("/login", StringComparison.OrdinalIgnoreCase), 10);
+            SeleniumHelper.WaitUntil(drv => !drv.Url.Contains("/login", StringComparison.OrdinalIgnoreCase), 20);
         }
     }
 
