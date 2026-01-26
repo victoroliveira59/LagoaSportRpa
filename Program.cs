@@ -117,24 +117,39 @@ namespace LagoaSportRpa
         private static readonly int DefaultTimeoutSeconds =
             int.TryParse(Environment.GetEnvironmentVariable("WAIT_SECONDS"), out var seconds) && seconds > 0
                 ? seconds
-                : 15;
+                : 60;
 
         public static void Start()
         {
             if (_driver != null) return;
 
             var options = new ChromeOptions();
+
+            // --- CONFIGURAÇÕES DE VISUAL ---
             options.AddArgument("--start-maximized");
             options.AddArgument("--window-size=1920,1080");
-            options.AddArgument("--disable-extensions");
 
+            // --- MODO FURTIVO (CRÍTICO PARA SERVIDOR) ---
+            // 1. Muda o User-Agent para parecer um Windows normal, não um robô Linux
+            options.AddArgument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+
+            // 2. Desativa a flag interna que avisa "Estou sendo controlado por automação"
+            options.AddArgument("--disable-blink-features=AutomationControlled");
+
+            // 3. Remove a barra amarela "Chrome is being controlled by automated software"
+            options.AddExcludedArgument("enable-automation");
+            options.AddAdditionalOption("useAutomationExtension", false);
+
+            // --- CONFIGURAÇÕES DOCKER ---
             var headless = string.Equals(Environment.GetEnvironmentVariable("HEADLESS"), "true", StringComparison.OrdinalIgnoreCase);
             if (headless)
             {
+                // Use o modo "new" que é muito mais estável
                 options.AddArgument("--headless=new");
                 options.AddArgument("--no-sandbox");
                 options.AddArgument("--disable-dev-shm-usage");
                 options.AddArgument("--disable-gpu");
+                options.AddArgument("--disable-extensions");
             }
 
             var chromeBin = Environment.GetEnvironmentVariable("CHROME_BIN");
