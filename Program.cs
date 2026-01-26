@@ -125,6 +125,8 @@ namespace LagoaSportRpa
 
             var options = new ChromeOptions();
             options.AddArgument("--start-maximized");
+            options.AddArgument("--window-size=1920,1080");
+            options.AddArgument("--disable-extensions");
 
             var headless = string.Equals(Environment.GetEnvironmentVariable("HEADLESS"), "true", StringComparison.OrdinalIgnoreCase);
             if (headless)
@@ -133,7 +135,6 @@ namespace LagoaSportRpa
                 options.AddArgument("--no-sandbox");
                 options.AddArgument("--disable-dev-shm-usage");
                 options.AddArgument("--disable-gpu");
-                options.AddArgument("--window-size=1920,1080");
             }
 
             var chromeBin = Environment.GetEnvironmentVariable("CHROME_BIN");
@@ -182,10 +183,10 @@ namespace LagoaSportRpa
             el.Click();
         }
 
-        public static void WaitUntil(Func<IWebDriver, bool> condition, int timeoutSeconds = 10)
+        public static void WaitUntil(Func<IWebDriver, bool> condition, int timeoutSeconds = 0)
         {
             EnsureDriver();
-            var wait = new WebDriverWait(_driver!, TimeSpan.FromSeconds(timeoutSeconds));
+            var wait = new WebDriverWait(_driver!, TimeSpan.FromSeconds(timeoutSeconds > 0 ? timeoutSeconds : DefaultTimeoutSeconds));
             wait.Until(condition);
         }
 
@@ -209,6 +210,24 @@ namespace LagoaSportRpa
             return wait.Until(drv => drv.FindElement(by));
         }
 
+        public static void TakeScreenshot(string fileName)
+        {
+            if (_driver == null) return;
+            try
+            {
+                var screenshot = ((ITakesScreenshot)_driver).GetScreenshot();
+                var path = Path.Combine(Directory.GetCurrentDirectory(), "prints");
+                if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+
+                var filePath = Path.Combine(path, fileName);
+                screenshot.SaveAsFile(filePath);
+                Console.WriteLine($"Screenshot salvo em: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao tirar screenshot: {ex.Message}");
+            }
+        }
         private static void EnsureDriver()
         {
             if (_driver == null)
@@ -538,6 +557,9 @@ namespace LagoaSportRpa
         }
     }
 }
+
+
+
 
 
 
