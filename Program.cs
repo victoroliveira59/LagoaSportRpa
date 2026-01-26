@@ -482,6 +482,47 @@ namespace LagoaSportRpa
                 .Build();
 
             var settings = config.Get<AppSettings>();
+
+            Console.WriteLine("=== DIAGNÓSTICO DE VARIÁVEIS DE AMBIENTE ===");
+
+            // 1. Testa se o objeto principal foi criado
+            if (settings.Agendamento == null)
+                Console.WriteLine("ERRO CRÍTICO: Objeto 'Agendamento' está NULO.");
+            else
+                Console.WriteLine("Objeto 'Agendamento': OK");
+
+            // 2. Testa variáveis não sensíveis (Pode imprimir o valor)
+            Console.WriteLine($"URL Login: '{settings.Agendamento?.UrlLogin}'");
+
+            // 3. Testa dados sensíveis (MOSTRAR APENAS SE ESTÁ PREENCHIDO)
+            void CheckSensitive(string nome, string valor)
+            {
+                bool temValor = !string.IsNullOrWhiteSpace(valor);
+                string status = temValor ? $"OK (Tamanho: {valor.Length})" : "VAZIO/NULO ❌";
+                Console.WriteLine($"Variável {nome}: {status}");
+            }
+
+            // Verifica o CPF e RG (Secrets)
+            CheckSensitive("CPF", settings.Agendamento?.Participante?.Cpf);
+            CheckSensitive("RG", settings.Agendamento?.Participante?.Rg);
+
+            // Verifica os Logins (Array)
+            if (settings.Agendamento?.Logins != null)
+            {
+                Console.WriteLine($"Total de Logins encontrados: {settings.Agendamento.Logins.Count}");
+                for (int i = 0; i < settings.Agendamento.Logins.Count; i++)
+                {
+                    var login = settings.Agendamento.Logins[i];
+                    Console.WriteLine($"--- Login [{i}] ({login.Email}) ---");
+                    CheckSensitive($"Senha [{i}]", login.Senha);
+                    CheckSensitive($"Horario [{i}]", login.Horario);
+                }
+            }
+            else
+            {
+                Console.WriteLine("ERRO: Lista de Logins está vazia ou nula!");
+            }
+            Console.WriteLine("==============================================");
             if (settings == null || settings.Agendamento == null)
             {
                 throw new InvalidOperationException("Configuração inválida: seção Agendamento não encontrada.");
