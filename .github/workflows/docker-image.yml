@@ -37,3 +37,11 @@ jobs:
           -e AGENDAMENTO__LOGINS__1__SENHA="${{ secrets.AGENDAMENTO__LOGINS__1__SENHA }}" \
           -e AGENDAMENTO__LOGINS__1__HORARIO="${{ secrets.AGENDAMENTO__LOGINS__1__HORARIO }}" \
           rpa-image
+
+      - name: Upload dos Prints de Erro
+        if: failure() # Só roda se o robô falhar
+        uses: actions/upload-artifact@v4
+        with:
+          name: prints-de-erro
+          path: prints/*.png
+          retention-days: 5
