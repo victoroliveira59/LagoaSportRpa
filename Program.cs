@@ -5,6 +5,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Support.UI;
 
 namespace LagoaSportRpa;
 
@@ -232,6 +235,75 @@ public sealed class ParticipantPayload
     public string Email { get; set; } = string.Empty;
 }
 
+public sealed class BrowserLoginSession
+{
+    public required CookieContainer Cookies { get; init; }
+}
+
+public static class BrowserLoginService
+{
+    public static Task<BrowserLoginSession> LoginAsync(string loginUrl, string email, string senha)
+    {
+        return Task.Run(() =>
+        {
+            var options = new ChromeOptions();
+            options.AddArgument("--headless=new");
+            options.AddArgument("--no-sandbox");
+            options.AddArgument("--disable-dev-shm-usage");
+            options.AddArgument("--disable-gpu");
+            options.AddArgument("--window-size=1920,1080");
+            options.AddArgument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+            options.AddArgument("--disable-blink-features=AutomationControlled");
+            options.AddExcludedArgument("enable-automation");
+            options.AddAdditionalOption("useAutomationExtension", false);
+
+            var chromeBin = Environment.GetEnvironmentVariable("CHROME_BIN");
+            if (!string.IsNullOrWhiteSpace(chromeBin))
+            {
+                options.BinaryLocation = chromeBin;
+            }
+
+            var driverPath = Environment.GetEnvironmentVariable("CHROMEDRIVER_PATH");
+            var service = string.IsNullOrWhiteSpace(driverPath)
+                ? ChromeDriverService.CreateDefaultService()
+                : ChromeDriverService.CreateDefaultService(driverPath);
+            service.HideCommandPromptWindow = true;
+
+            using var driver = new ChromeDriver(service, options);
+            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
+
+            driver.Navigate().GoToUrl(loginUrl);
+            wait.Until(d => d.FindElement(By.Id("email")));
+
+            driver.FindElement(By.Id("email")).Clear();
+            driver.FindElement(By.Id("email")).SendKeys(email);
+            driver.FindElement(By.Id("password")).Clear();
+            driver.FindElement(By.Id("password")).SendKeys(senha);
+            driver.FindElement(By.XPath("//button[@type='submit']")).Click();
+
+            wait.Until(d => !d.Url.Contains("/login", StringComparison.OrdinalIgnoreCase));
+
+            var jar = new CookieContainer();
+            var baseUri = new Uri(loginUrl);
+            foreach (var cookie in driver.Manage().Cookies.AllCookies)
+            {
+                var netCookie = new Cookie(
+                    cookie.Name,
+                    cookie.Value,
+                    string.IsNullOrWhiteSpace(cookie.Path) ? "/" : cookie.Path,
+                    string.IsNullOrWhiteSpace(cookie.Domain) ? baseUri.Host : cookie.Domain.TrimStart('.'));
+
+                netCookie.Secure = cookie.Secure;
+                netCookie.HttpOnly = cookie.IsHttpOnly;
+
+                jar.Add(baseUri, netCookie);
+            }
+
+            return new BrowserLoginSession { Cookies = jar };
+        });
+    }
+}
+
 public sealed class LagoaSportApiClient : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -240,11 +312,12 @@ public sealed class LagoaSportApiClient : IDisposable
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    private readonly CookieContainer _cookies = new();
+    private readonly CookieContainer _cookies;
     private readonly HttpClient _http;
 
-    public LagoaSportApiClient(string baseUrl)
+    public LagoaSportApiClient(string baseUrl, CookieContainer? cookies = null)
     {
+        _cookies = cookies ?? new CookieContainer();
         var handler = new HttpClientHandler
         {
             CookieContainer = _cookies,
@@ -543,13 +616,14 @@ public static class Program
         var startedAt = DateTimeOffset.UtcNow;
         var locationId = ExtractLocationId(settings.UrlQuadra);
 
-        using var api = new LagoaSportApiClient("https://lagoasport.lagoasanta.mg.gov.br");
+        var browserSession = await BrowserLoginService.LoginAsync(settings.UrlLogin, request.Email, request.Senha);
+        using var api = new LagoaSportApiClient("https://lagoasport.lagoasanta.mg.gov.br", browserSession.Cookies);
 
-        var dashboard = await api.LoginAsync(request.Email, request.Senha);
+        var locationPage = await api.GetLocationAsync(locationId);
         ct.ThrowIfCancellationRequested();
 
-        var authUser = dashboard.Props?.Auth?.User
-                       ?? throw new InvalidOperationException("Usuário autenticado não retornou no dashboard.");
+        var authUser = (locationPage.Props?.Auth?.User)
+                       ?? throw new InvalidOperationException("Usuário autenticado não retornou na sessão.");
 
         var activeReservation = await api.GetActiveReservationAsync();
         var slotId = activeReservation.Slot?.Id;
@@ -571,7 +645,6 @@ public static class Program
 
         if (slotId == null)
         {
-            var locationPage = await api.GetLocationAsync(locationId);
             slotId = SelectSlotId(locationPage.Props?.SlotsByDate, settings.TextoDia, request.Horario);
         }
 
