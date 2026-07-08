@@ -10,9 +10,9 @@ RUN dotnet publish LagoaSportRpa.csproj -c Release -o /app/publish /p:UseAppHost
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim AS runtime
 
 ENV ASPNETCORE_ENVIRONMENT=Development
-ENV ASPNETCORE_HTTP_PORTS=80
+ENV ASPNETCORE_HTTP_PORTS=8080
 
-EXPOSE 80
+EXPOSE 8080
 
 WORKDIR /app
 COPY --from=build /app/publish .
