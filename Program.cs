@@ -459,7 +459,7 @@ public static class Program
         LoadDotEnv(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
 
         var builder = WebApplication.CreateBuilder(args);
-        builder.WebHost.UseUrls(Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://0.0.0.0:8081");
+        builder.WebHost.UseUrls(Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://0.0.0.0:8080");
 
         var app = builder.Build();
 
