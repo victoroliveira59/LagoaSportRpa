@@ -9,7 +9,7 @@ RUN dotnet publish LagoaSportRpa.csproj -c Release -o /app/publish /p:UseAppHost
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim AS runtime
 
-ENV ASPNETCORE_URLS=http://0.0.0.0:8080
+ENV ASPNETCORE_URLS=http://0.0.0.0:5020
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV AGENDAMENTO__URLLOGIN=
 ENV AGENDAMENTO__URLQUADRA=
