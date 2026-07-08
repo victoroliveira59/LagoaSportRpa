@@ -219,8 +219,7 @@ namespace LagoaSportRpa
         public async Task<ActiveReservationResponse> GetActiveReservationAsync()
         {
             using var response = await _http.GetAsync("timeslots/active-reservation");
-            response.EnsureSuccessStatusCode();
-            var json = await response.Content.ReadAsStringAsync();
+            var json = await ReadBodyOrThrowAsync(response, "GET", "timeslots/active-reservation");
             return JsonSerializer.Deserialize<ActiveReservationResponse>(json, JsonOptions)
                    ?? throw new InvalidOperationException("Resposta inválida em timeslots/active-reservation.");
         }
@@ -257,7 +256,7 @@ namespace LagoaSportRpa
             }
 
             using var response = await _http.SendAsync(request);
-            var body = await response.Content.ReadAsStringAsync();
+            var body = await ReadBodyOrThrowAsync(response, "POST", "appointments");
             return ParseInertiaResponse<GenericFlashProps>(body);
         }
 
@@ -276,7 +275,7 @@ namespace LagoaSportRpa
             }
 
             using var response = await _http.SendAsync(request);
-            response.EnsureSuccessStatusCode();
+            await ReadBodyOrThrowAsync(response, "POST", $"timeslots/{slotId}/cancel");
         }
 
         private async Task<InertiaPage<TProps>> GetPageAsync<TProps>(string relativeUrl)
@@ -288,9 +287,20 @@ namespace LagoaSportRpa
         private async Task<string> GetStringAsync(string relativeUrl)
         {
             using var response = await _http.GetAsync(relativeUrl);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStringAsync();
+            return await ReadBodyOrThrowAsync(response, "GET", relativeUrl);
+        }
 
+        private static async Task<string> ReadBodyOrThrowAsync(HttpResponseMessage response, string method, string relativeUrl)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException(
+                    $"{method} {relativeUrl} HTTP falhou: {(int)response.StatusCode} {response.ReasonPhrase}. " +
+                    $"{TruncateForError(body)}");
+            }
+
+            return body;
         }
 
         private static InertiaPage<TProps> ParsePage<TProps>(string html)
