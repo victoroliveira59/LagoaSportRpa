@@ -984,11 +984,11 @@ namespace LagoaSportRpa
             var startedAt = DateTimeOffset.UtcNow;
             var results = new List<LoginExecutionResult>();
 
-            using var api = new LagoaSportApiClient("https://lagoasport.lagoasanta.mg.gov.br");
-
             foreach (var login in ag.Logins)
             {
                 ct.ThrowIfCancellationRequested();
+
+                using var api = new LagoaSportApiClient("https://lagoasport.lagoasanta.mg.gov.br");
 
                 try
                 {
