@@ -463,6 +463,7 @@ public static class Program
 
         var app = builder.Build();
 
+        app.MapGet("/", () => Results.Ok(new { status = "ok", service = "lagoa-sport-rpa" }));
         app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
         app.MapPost("/executar", async (HttpRequest httpRequest, CancellationToken ct) =>
