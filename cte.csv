@@ -1,0 +1,24 @@
+﻿KeyValuePair`2;KeyValuePair`2.Key;KeyValuePair`2.Value
+"[tipoDocumento, CTe]";tipoDocumento;CTe
+"[chave, 42260229741554000121570010003300711002148163]";chave;42260229741554000121570010003300711002148163
+"[numero, 330071]";numero;330071
+"[serie, 1]";serie;1
+"[razaoSocialEmissor, TRANSPORTES F7 EIRELI]";razaoSocialEmissor;"TRANSPORTES F7 EIRELI"
+"[nomeFantasiaEmissor, TRANSPORTES F7 EIRELI]";nomeFantasiaEmissor;"TRANSPORTES F7 EIRELI"
+"[cnpjEmissor, 29741554000121]";cnpjEmissor;29741554000121
+"[dataEmissao, 02/02/2026 23:27:00]";dataEmissao;"02/02/2026 23:27:00"
+"[dataInclusao, 03/02/2026 01:19:27]";dataInclusao;"03/02/2026 01:19:27"
+"[valorTotal, 72,43]";valorTotal;72,43
+"[tipoNotaFiscal, 0]";tipoNotaFiscal;0
+"[tipoCTe, 0]";tipoCTe;0
+"[situacaoNotaFiscal, 1]";situacaoNotaFiscal;1
+"[informacoesComplementares, CST: 90 - Apolice seguro: 5177202123540000102 - Seguradora: 61573796000166 ALLIANZ SEGUROS Empresa optante pelo simples nacional. Nao gera direito credito de icms]";informacoesComplementares;"CST: 90 - Apolice seguro: 5177202123540000102 - Seguradora: 61573796000166 ALLIANZ SEGUROS Empresa optante pelo simples nacional. Nao gera direito credito de icms"
+"[pesoBruto, 9,43]";pesoBruto;9,43
+"[pesoLiquido, 0]";pesoLiquido;0
+"[naturezaOperacao, Transp a est comercial]";naturezaOperacao;"Transp a est comercial"
+"[chaveArmazenamento, CTe/79763884000943/26/02/29741554000121/42260229741554000121570010003300711002148163.xml]";chaveArmazenamento;CTe/79763884000943/26/02/29741554000121/42260229741554000121570010003300711002148163.xml
+"[resumo, False]";resumo;False
+"[erro, False]";erro;False
+"[cancelada, False]";cancelada;False
+"[tomadorServico, True]";tomadorServico;True
+"[situacao, Tomador]";situacao;Tomador
