@@ -1,6 +1,7 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
+using OpenQA.Selenium.Remote;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
@@ -248,8 +249,10 @@ public static class BrowserLoginService
         return Task.Run(() =>
         {
             var options = new ChromeOptions();
+            var remoteUrl = Environment.GetEnvironmentVariable("SELENIUM_REMOTE_URL");
+            var useRemote = !string.IsNullOrWhiteSpace(remoteUrl);
             var headless = string.Equals(Environment.GetEnvironmentVariable("HEADLESS"), "true", StringComparison.OrdinalIgnoreCase);
-            if (headless)
+            if (!useRemote && headless)
             {
                 options.AddArgument("--headless=new");
             }
@@ -262,10 +265,13 @@ public static class BrowserLoginService
             options.AddExcludedArgument("enable-automation");
             options.AddAdditionalOption("useAutomationExtension", false);
 
-            var chromeBin = Environment.GetEnvironmentVariable("CHROME_BIN");
-            if (!string.IsNullOrWhiteSpace(chromeBin))
+            if (!useRemote)
             {
-                options.BinaryLocation = chromeBin;
+                var chromeBin = Environment.GetEnvironmentVariable("CHROME_BIN");
+                if (!string.IsNullOrWhiteSpace(chromeBin))
+                {
+                    options.BinaryLocation = chromeBin;
+                }
             }
 
             var display = Environment.GetEnvironmentVariable("DISPLAY");
@@ -274,16 +280,28 @@ public static class BrowserLoginService
                 Console.WriteLine($"[browser] display: {display}");
             }
 
-            var driverPath = Environment.GetEnvironmentVariable("CHROMEDRIVER_PATH");
-            var service = string.IsNullOrWhiteSpace(driverPath)
-                ? ChromeDriverService.CreateDefaultService()
-                : ChromeDriverService.CreateDefaultService(driverPath);
-            service.HideCommandPromptWindow = true;
-            service.EnableVerboseLogging = true;
-            service.LogPath = Path.Combine(Path.GetTempPath(), $"chromedriver-{Guid.NewGuid():N}.log");
-            Console.WriteLine($"[browser] ChromeDriver log: {service.LogPath}");
+            IWebDriver driver;
+            if (useRemote)
+            {
+                Console.WriteLine($"[browser] remote selenium: {remoteUrl}");
+                driver = new RemoteWebDriver(new Uri(remoteUrl!), options);
+            }
+            else
+            {
+                var driverPath = Environment.GetEnvironmentVariable("CHROMEDRIVER_PATH");
+                var service = string.IsNullOrWhiteSpace(driverPath)
+                    ? ChromeDriverService.CreateDefaultService()
+                    : ChromeDriverService.CreateDefaultService(driverPath);
+                service.HideCommandPromptWindow = true;
+                service.EnableVerboseLogging = true;
+                service.LogPath = Path.Combine(Path.GetTempPath(), $"chromedriver-{Guid.NewGuid():N}.log");
+                Console.WriteLine($"[browser] ChromeDriver log: {service.LogPath}");
 
-            using var driver = new ChromeDriver(service, options);
+                driver = new ChromeDriver(service, options);
+            }
+
+            using (driver)
+            {
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(60));
 
             try
@@ -329,6 +347,7 @@ public static class BrowserLoginService
             {
                 SaveScreenshot(driver, "login-failure");
                 throw;
+            }
             }
         });
     }
