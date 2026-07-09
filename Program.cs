@@ -1,3 +1,6 @@
+using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Support.UI;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
@@ -5,9 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.Support.UI;
+
 
 namespace LagoaSportRpa;
 
@@ -287,7 +288,7 @@ public static class BrowserLoginService
             var baseUri = new Uri(loginUrl);
             foreach (var cookie in driver.Manage().Cookies.AllCookies)
             {
-                var netCookie = new Cookie(
+                var netCookie = new System.Net.Cookie(
                     cookie.Name,
                     cookie.Value,
                     string.IsNullOrWhiteSpace(cookie.Path) ? "/" : cookie.Path,
