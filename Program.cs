@@ -248,7 +248,11 @@ public static class BrowserLoginService
         return Task.Run(() =>
         {
             var options = new ChromeOptions();
-            options.AddArgument("--headless=new");
+            var headless = string.Equals(Environment.GetEnvironmentVariable("HEADLESS"), "true", StringComparison.OrdinalIgnoreCase);
+            if (headless)
+            {
+                options.AddArgument("--headless=new");
+            }
             options.AddArgument("--no-sandbox");
             options.AddArgument("--disable-dev-shm-usage");
             options.AddArgument("--disable-gpu");
@@ -262,6 +266,12 @@ public static class BrowserLoginService
             if (!string.IsNullOrWhiteSpace(chromeBin))
             {
                 options.BinaryLocation = chromeBin;
+            }
+
+            var display = Environment.GetEnvironmentVariable("DISPLAY");
+            if (!string.IsNullOrWhiteSpace(display))
+            {
+                Console.WriteLine($"[browser] display: {display}");
             }
 
             var driverPath = Environment.GetEnvironmentVariable("CHROMEDRIVER_PATH");
