@@ -269,20 +269,31 @@ public static class BrowserLoginService
                 ? ChromeDriverService.CreateDefaultService()
                 : ChromeDriverService.CreateDefaultService(driverPath);
             service.HideCommandPromptWindow = true;
+            service.EnableVerboseLogging = true;
+            service.LogPath = Path.Combine(Path.GetTempPath(), $"chromedriver-{Guid.NewGuid():N}.log");
+            Console.WriteLine($"[browser] ChromeDriver log: {service.LogPath}");
 
             using var driver = new ChromeDriver(service, options);
-            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
+            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(60));
 
+            Console.WriteLine("[browser] open login page");
             driver.Navigate().GoToUrl(loginUrl);
+
+            Console.WriteLine("[browser] wait email field");
             wait.Until(d => d.FindElement(By.Id("email")));
 
+            Console.WriteLine("[browser] fill credentials");
             driver.FindElement(By.Id("email")).Clear();
             driver.FindElement(By.Id("email")).SendKeys(email);
             driver.FindElement(By.Id("password")).Clear();
             driver.FindElement(By.Id("password")).SendKeys(senha);
+
+            Console.WriteLine("[browser] submit login");
             driver.FindElement(By.XPath("//button[@type='submit']")).Click();
 
+            Console.WriteLine("[browser] wait redirect");
             wait.Until(d => !d.Url.Contains("/login", StringComparison.OrdinalIgnoreCase));
+            Console.WriteLine($"[browser] redirected to {driver.Url}");
 
             var jar = new CookieContainer();
             var baseUri = new Uri(loginUrl);
@@ -301,7 +312,33 @@ public static class BrowserLoginService
             }
 
             return new BrowserLoginSession { Cookies = jar };
+        }).ContinueWith(task =>
+        {
+            if (task.IsFaulted && task.Exception != null)
+            {
+                Console.WriteLine($"[browser] login failed: {task.Exception.GetBaseException().Message}");
+            }
+
+            return task.Result;
         });
+    }
+
+    private static void SaveScreenshot(IWebDriver driver, string label)
+    {
+        try
+        {
+            if (driver is ITakesScreenshot screenshotTaker)
+            {
+                var path = Path.Combine(Path.GetTempPath(), $"lagoa-login-{label}-{DateTimeOffset.UtcNow:yyyyMMddHHmmssfff}.png");
+                screenshotTaker.GetScreenshot().SaveAsFile(path);
+                Console.WriteLine($"[browser] screenshot: {path}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[browser] screenshot error: {ex.Message}");
+        }
+    });
     }
 }
 
