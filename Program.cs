@@ -276,50 +276,50 @@ public static class BrowserLoginService
             using var driver = new ChromeDriver(service, options);
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(60));
 
-            Console.WriteLine("[browser] open login page");
-            driver.Navigate().GoToUrl(loginUrl);
-
-            Console.WriteLine("[browser] wait email field");
-            wait.Until(d => d.FindElement(By.Id("email")));
-
-            Console.WriteLine("[browser] fill credentials");
-            driver.FindElement(By.Id("email")).Clear();
-            driver.FindElement(By.Id("email")).SendKeys(email);
-            driver.FindElement(By.Id("password")).Clear();
-            driver.FindElement(By.Id("password")).SendKeys(senha);
-
-            Console.WriteLine("[browser] submit login");
-            driver.FindElement(By.XPath("//button[@type='submit']")).Click();
-
-            Console.WriteLine("[browser] wait redirect");
-            wait.Until(d => !d.Url.Contains("/login", StringComparison.OrdinalIgnoreCase));
-            Console.WriteLine($"[browser] redirected to {driver.Url}");
-
-            var jar = new CookieContainer();
-            var baseUri = new Uri(loginUrl);
-            foreach (var cookie in driver.Manage().Cookies.AllCookies)
+            try
             {
-                var netCookie = new System.Net.Cookie(
-                    cookie.Name,
-                    cookie.Value,
-                    string.IsNullOrWhiteSpace(cookie.Path) ? "/" : cookie.Path,
-                    string.IsNullOrWhiteSpace(cookie.Domain) ? baseUri.Host : cookie.Domain.TrimStart('.'));
+                Console.WriteLine("[browser] open login page");
+                driver.Navigate().GoToUrl(loginUrl);
 
-                netCookie.Secure = cookie.Secure;
-                netCookie.HttpOnly = cookie.IsHttpOnly;
+                Console.WriteLine("[browser] wait email field");
+                wait.Until(d => d.FindElement(By.Id("email")));
 
-                jar.Add(baseUri, netCookie);
+                Console.WriteLine("[browser] fill credentials");
+                driver.FindElement(By.Id("email")).Clear();
+                driver.FindElement(By.Id("email")).SendKeys(email);
+                driver.FindElement(By.Id("password")).Clear();
+                driver.FindElement(By.Id("password")).SendKeys(senha);
+
+                Console.WriteLine("[browser] submit login");
+                driver.FindElement(By.XPath("//button[@type='submit']")).Click();
+
+                Console.WriteLine("[browser] wait redirect");
+                wait.Until(d => !d.Url.Contains("/login", StringComparison.OrdinalIgnoreCase));
+                Console.WriteLine($"[browser] redirected to {driver.Url}");
+
+                var jar = new CookieContainer();
+                var baseUri = new Uri(loginUrl);
+                foreach (var cookie in driver.Manage().Cookies.AllCookies)
+                {
+                    var netCookie = new System.Net.Cookie(
+                        cookie.Name,
+                        cookie.Value,
+                        string.IsNullOrWhiteSpace(cookie.Path) ? "/" : cookie.Path,
+                        string.IsNullOrWhiteSpace(cookie.Domain) ? baseUri.Host : cookie.Domain.TrimStart('.'));
+
+                    netCookie.Secure = cookie.Secure;
+                    netCookie.HttpOnly = cookie.IsHttpOnly;
+
+                    jar.Add(baseUri, netCookie);
+                }
+
+                return new BrowserLoginSession { Cookies = jar };
             }
-
-            return new BrowserLoginSession { Cookies = jar };
-        }).ContinueWith(task =>
-        {
-            if (task.IsFaulted && task.Exception != null)
+            catch
             {
-                Console.WriteLine($"[browser] login failed: {task.Exception.GetBaseException().Message}");
+                SaveScreenshot(driver, "login-failure");
+                throw;
             }
-
-            return task.Result;
         });
     }
 
@@ -338,7 +338,6 @@ public static class BrowserLoginService
         {
             Console.WriteLine($"[browser] screenshot error: {ex.Message}");
         }
-    });
     }
 }
 
@@ -602,6 +601,7 @@ public static class Program
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[api] execution failed for {request.Email}: {ex}");
                 return Results.Ok(new ExecutarAgendamentoResponse
                 {
                     Success = false,
