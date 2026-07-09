@@ -250,13 +250,8 @@ public static class BrowserLoginService
             var options = new ChromeOptions();
             options.AddArgument("--headless=new");
             options.AddArgument("--no-sandbox");
-            options.AddArgument("--disable-setuid-sandbox");
             options.AddArgument("--disable-dev-shm-usage");
             options.AddArgument("--disable-gpu");
-            options.AddArgument("--disable-software-rasterizer");
-            options.AddArgument("--no-zygote");
-            options.AddArgument("--remote-debugging-port=9222");
-            options.AddArgument("--user-data-dir=/tmp/chrome-profile");
             options.AddArgument("--window-size=1920,1080");
             options.AddArgument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
             options.AddArgument("--disable-blink-features=AutomationControlled");
@@ -274,9 +269,6 @@ public static class BrowserLoginService
                 ? ChromeDriverService.CreateDefaultService()
                 : ChromeDriverService.CreateDefaultService(driverPath);
             service.HideCommandPromptWindow = true;
-            service.EnableVerboseLogging = true;
-            service.LogPath = Path.Combine(Path.GetTempPath(), $"chromedriver-{Guid.NewGuid():N}.log");
-            Console.WriteLine($"ChromeDriver log: {service.LogPath}");
 
             using var driver = new ChromeDriver(service, options);
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
